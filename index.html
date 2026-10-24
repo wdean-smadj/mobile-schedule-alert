@@ -66,9 +66,31 @@ function loadEvents(){try{return JSON.parse(localStorage.getItem(STORE)||'[]')}c
 function save(){localStorage.setItem(STORE,JSON.stringify(events));render()}
 function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function dayName(date){return new Intl.DateTimeFormat('ms-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(date)}
-function dateTime(e){return new Date(`${e.date}T${e.time}:00`)}
+function normalizeDateKey(value){
+ const s=String(value??'').trim();
+ if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+ const iso=s.match(/^(\d{4}-\d{2}-\d{2})[T ]/); if(iso) return iso[1];
+ let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ if(m){ // Google Sheets/Apps Script can return MM/DD/YYYY strings
+   const a=Number(m[1]), b=Number(m[2]), y=m[3];
+   const month=a>12?b:a, day=a>12?a:b;
+   return `${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+ }
+ const d=new Date(s);
+ if(!Number.isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ return s;
+}
+function dateTime(e){return new Date(`${normalizeDateKey(e.date)}T${e.time}:00`)}
 function fmtTime(t){return new Intl.DateTimeFormat('ms-MY',{hour:'2-digit',minute:'2-digit',hour12:false}).format(t)}
-function instancesFor(date){const ds=localDate(date), day=date.getDay();let arr=[];for(const e of events){if(e.date===ds)arr.push({...e,instanceDate:ds});else if(e.repeat==='weekly'&&e.date<ds&&new Date(e.date+'T12:00:00').getDay()===day)arr.push({...e,instanceDate:ds,virtual:true});}return arr.sort((a,b)=>a.time.localeCompare(b.time))}
+function instancesFor(date){
+ const ds=localDate(date), day=date.getDay(); let arr=[];
+ for(const e of events){
+   const ed=normalizeDateKey(e.date);
+   if(ed===ds) arr.push({...e,date:ed,instanceDate:ds});
+   else if(e.repeat==='weekly'&&ed<ds&&new Date(ed+'T12:00:00').getDay()===day) arr.push({...e,date:ed,instanceDate:ds,virtual:true});
+ }
+ return arr.sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+}
 function isDone(e){return !!e.doneDates?.includes(e.instanceDate||e.date)}
 function render(){const now=new Date(), today=localDate(now), todays=instancesFor(now);$('countToday').textContent=todays.length;$('countPending').textContent=todays.filter(e=>!isDone(e)).length;$('countAlerts').textContent=todays.filter(e=>e.alertOn&&e.remind>0&&!isDone(e)).length;$('todayCountLabel').textContent=`${todays.length} aktiviti`;$('todayLabel').textContent=dayName(now);let next=todays.find(e=>!isDone(e)&&dateTime({...e,date:e.instanceDate})>=now);$('nextLine').textContent=next?`Seterusnya: ${next.title} · ${next.time}`:'Tiada aktiviti akan datang 🎉';$('todayList').innerHTML=renderEvents(todays);let week=[];for(let i=0;i<7;i++){let d=new Date(now);d.setDate(now.getDate()+i);let es=instancesFor(d);if(es.length)week.push({date:d,events:es})}$('weekList').innerHTML=week.length?week.map(g=>`<h3 style="font-size:14px;color:var(--accent);margin:18px 2px 9px">${dayName(g.date)}</h3>${renderEvents(g.events)}`).join(''):'<div class="empty">Tiada aktiviti minggu ini. Tambah jadual pertama anda.</div>';updateNotifStatus()}
 function renderEvents(arr){if(!arr.length)return '<div class="empty">Belum ada aktiviti. Tekan “Aktiviti baharu” untuk tambah jadual.</div>';return arr.map(e=>{const done=isDone(e), id=e.id;return `<article class="event ${done?'done':''}"><div class="time">${esc(e.time)}<br><span class="muted">${e.duration||60} min</span></div><div><h3>${esc(e.title)}</h3><p>${esc(e.notes||e.category||'')}</p><span class="tag">${esc(e.category||'Peribadi')}${e.repeat==='weekly'?' · Mingguan':''}${e.priority==='Kritikal'?' · ⚠ Kritikal':''}</span>${e.alertOn&&e.remind>0?` <span class="tag">🔔 ${e.remind} min</span>`:''}</div><div class="actions"><button class="mini" data-action="done" data-id="${id}" data-date="${e.instanceDate||e.date}">${done?'↩ Buka':'✓ Selesai'}</button><button class="mini" data-action="edit" data-id="${id}">Edit</button><button class="mini" data-action="delete" data-id="${id}">Padam</button></div></article>`}).join('')}
@@ -112,7 +134,7 @@ async function syncWithGas(){
    events=Array.from(map.values()).sort((a,b)=>(String(a.date)+String(a.time)).localeCompare(String(b.date)+String(b.time)));
    localStorage.setItem(STORE,JSON.stringify(events));
    render();
-   setSyncStatus(`Sync berjaya. ${cloud.length} rekod Google Sheets dimuat turun${localOnly.length?`; ${localOnly.length} rekod tempatan dikekalkan dan belum dihantar`:''}.`,true);
+   setSyncStatus(`Sync berjaya. ${cloud.length} rekod Google Sheets dimuat turun${cloud.length?` (tarikh: ${cloud.map(e=>normalizeDateKey(e.date)).join(', ')})`:''}${localOnly.length?`; ${localOnly.length} rekod tempatan dikekalkan dan belum dihantar`:''}.`,true);
  }catch(err){
    setSyncStatus('Sync gagal: '+err.message);
    console.error(err);
