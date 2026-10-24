@@ -70,17 +70,13 @@ function normalizeDateKey(value){
  const s=String(value??'').trim();
  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
  const iso=s.match(/^(\d{4}-\d{2}-\d{2})[T ]/); if(iso) return iso[1];
- let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
- if(m){ // Google Sheets/Apps Script can return MM/DD/YYYY strings
-   const a=Number(m[1]), b=Number(m[2]), y=m[3];
-   const month=a>12?b:a, day=a>12?a:b;
-   return `${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
- }
+ const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+ if(m){const a=Number(m[1]),b=Number(m[2]),y=m[3];const month=a>12?b:a,day=a>12?a:b;return `${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;}
  const d=new Date(s);
  if(!Number.isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
  return s;
 }
-function dateTime(e){return new Date(`${normalizeDateKey(e.date)}T${e.time}:00`)}
+function dateTime(e){return new Date(`${normalizeDateKey(e.date)}T${String(e.time).slice(0,5)}:00`)}
 function fmtTime(t){return new Intl.DateTimeFormat('ms-MY',{hour:'2-digit',minute:'2-digit',hour12:false}).format(t)}
 function instancesFor(date){
  const ds=localDate(date), day=date.getDay(); let arr=[];
@@ -89,7 +85,7 @@ function instancesFor(date){
    if(ed===ds) arr.push({...e,date:ed,instanceDate:ds});
    else if(e.repeat==='weekly'&&ed<ds&&new Date(ed+'T12:00:00').getDay()===day) arr.push({...e,date:ed,instanceDate:ds,virtual:true});
  }
- return arr.sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+ return arr.sort((a,b)=>String(a.time).slice(0,5).localeCompare(String(b.time).slice(0,5)));
 }
 function isDone(e){return !!e.doneDates?.includes(e.instanceDate||e.date)}
 function render(){const now=new Date(), today=localDate(now), todays=instancesFor(now);$('countToday').textContent=todays.length;$('countPending').textContent=todays.filter(e=>!isDone(e)).length;$('countAlerts').textContent=todays.filter(e=>e.alertOn&&e.remind>0&&!isDone(e)).length;$('todayCountLabel').textContent=`${todays.length} aktiviti`;$('todayLabel').textContent=dayName(now);let next=todays.find(e=>!isDone(e)&&dateTime({...e,date:e.instanceDate})>=now);$('nextLine').textContent=next?`Seterusnya: ${next.title} · ${next.time}`:'Tiada aktiviti akan datang 🎉';$('todayList').innerHTML=renderEvents(todays);let week=[];for(let i=0;i<7;i++){let d=new Date(now);d.setDate(now.getDate()+i);let es=instancesFor(d);if(es.length)week.push({date:d,events:es})}$('weekList').innerHTML=week.length?week.map(g=>`<h3 style="font-size:14px;color:var(--accent);margin:18px 2px 9px">${dayName(g.date)}</h3>${renderEvents(g.events)}`).join(''):'<div class="empty">Tiada aktiviti minggu ini. Tambah jadual pertama anda.</div>';updateNotifStatus()}
@@ -99,7 +95,7 @@ function showView(v){currentView=v;document.querySelectorAll('[id^="view-"]').fo
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 function resetForm(){ $('eventForm').reset();$('eventId').value='';$('date').value=localDate();$('duration').value=60;$('remind').value=String(prefs.defaultRemind??10);$('alertOn').checked=true;$('formTitle').textContent='Tambah aktiviti'}
 $('resetForm').onclick=resetForm;$('quickAdd').onclick=()=>{resetForm();showView('add')};
-$('eventForm').addEventListener('submit',ev=>{ev.preventDefault();let id=$('eventId').value||crypto.randomUUID();const old=events.find(e=>e.id===id);let e={id,title:$('title').value.trim(),date:$('date').value,time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:Number($('remind').value),priority:$('priority').value,notes:$('notes').value.trim(),alertOn:$('alertOn').checked,doneDates:old?.doneDates||[]};if(old)events=events.map(x=>x.id===id?e:x);else events.push(e);save();resetForm();showView('today');if(gasUrl()){setSyncStatus('Menyimpan aktiviti ke Google Sheets…');saveEventToCloud(e).then(()=>setSyncStatus('Aktiviti berjaya disimpan ke Google Sheets.',true)).catch(err=>setSyncStatus('Aktiviti disimpan pada peranti, tetapi gagal ke Google Sheets: '+err.message))}});
+$('eventForm').addEventListener('submit',ev=>{ev.preventDefault();let id=$('eventId').value||crypto.randomUUID();const old=events.find(e=>e.id===id);let e={id,title:$('title').value.trim(),date:normalizeDateKey($('date').value),time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:Number($('remind').value),priority:$('priority').value,notes:$('notes').value.trim(),alertOn:$('alertOn').checked,doneDates:old?.doneDates||[]};if(old)events=events.map(x=>x.id===id?e:x);else events.push(e);save();resetForm();showView('today');if(gasUrl()){setSyncStatus('Menyimpan aktiviti ke Google Sheets…');saveEventToCloud(e).then(()=>setSyncStatus('Aktiviti berjaya disimpan ke Google Sheets.',true)).catch(err=>setSyncStatus('Aktiviti disimpan pada peranti, tetapi gagal ke Google Sheets: '+err.message))}});
 document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b)return;const e=events.find(x=>x.id===b.dataset.id);if(!e)return;const a=b.dataset.action;if(a==='delete'){if(confirm(`Padam aktiviti “${e.title}”?`)){events=events.filter(x=>x.id!==e.id);save()}}if(a==='edit'){ $('eventId').value=e.id;for(const k of ['title','date','time','duration','category','repeat','remind','priority','notes'])$(k).value=e[k]??'';$('alertOn').checked=e.alertOn;$('formTitle').textContent='Edit aktiviti';showView('add')}if(a==='done'){e.doneDates=e.doneDates||[];const d=b.dataset.date;if(e.doneDates.includes(d))e.doneDates=e.doneDates.filter(x=>x!==d);else e.doneDates.push(d);save()}});
 async function askNotification(){if(!('Notification'in window)){alert('Pelayar ini tidak menyokong Web Notification.');return}try{const p=await Notification.requestPermission();updateNotifStatus();if(p==='granted')new Notification('Mobile Schedule Alert',{body:'Notifikasi berjaya diaktifkan.'})}catch(e){alert('Tidak dapat meminta kebenaran notifikasi. Cuba melalui HTTPS dan pelayar yang disokong.')}}
 function updateNotifStatus(){if(!('Notification'in window))$('notifStatus').textContent='Pelayar tidak menyokong notifikasi';else $('notifStatus').textContent='Status: '+Notification.permission}
@@ -127,26 +123,20 @@ async function syncWithGas(){
    const local=Array.isArray(events)?events:[];
    const cloudIds=new Set(cloud.map(e=>String(e.id)));
    const localOnly=local.filter(e=>!cloudIds.has(String(e.id)));
-   // Download cloud records, while retaining local-only records as a recovery safeguard.
    const map=new Map();
    localOnly.forEach(e=>map.set(String(e.id),e));
-   cloud.forEach(e=>map.set(String(e.id),e));
-   events=Array.from(map.values()).sort((a,b)=>(String(a.date)+String(a.time)).localeCompare(String(b.date)+String(b.time)));
+   cloud.forEach(e=>map.set(String(e.id),{...e,date:normalizeDateKey(e.date),time:String(e.time||'').slice(0,5)}));
+   events=Array.from(map.values()).sort((a,b)=>(normalizeDateKey(a.date)+String(a.time)).localeCompare(normalizeDateKey(b.date)+String(b.time)));
    localStorage.setItem(STORE,JSON.stringify(events));
    render();
-   setSyncStatus(`Sync berjaya. ${cloud.length} rekod Google Sheets dimuat turun${cloud.length?` (tarikh: ${cloud.map(e=>normalizeDateKey(e.date)).join(', ')})`:''}${localOnly.length?`; ${localOnly.length} rekod tempatan dikekalkan dan belum dihantar`:''}.`,true);
+   const detail=cloud.map(e=>`${e.title||'(tanpa tajuk)'} [${normalizeDateKey(e.date)} ${String(e.time||'').slice(0,5)}]`).join('; ');
+   setSyncStatus(`Sync berjaya. ${cloud.length} rekod dimuat turun${cloud.length?': '+detail:''}${localOnly.length?`; ${localOnly.length} rekod tempatan dikekalkan`:''}.`,true);
  }catch(err){
    setSyncStatus('Sync gagal: '+err.message);
    console.error(err);
  }finally{
    if(btn){btn.disabled=false;btn.textContent='⟳ Sync sekarang'}
  }
-}
-async function saveEventToCloud(event){
-  if(!gasUrl()) return {skipped:true};
-  const result=await gasCall('upsert',{payload:JSON.stringify(event)});
-  if(!result||!result.ok)throw new Error(result?.error||'Gagal menyimpan ke Google Sheets.');
-  return result;
 }
 $('saveGasUrl')?.addEventListener('click',()=>{
   const u = $('gasUrl').value.trim();
