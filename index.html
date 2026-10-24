@@ -65,7 +65,7 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <div class="bottom"><button class="btn secondary" id="notifyTest">Uji notifikasi</button><button class="btn" id="quickAdd">＋ Aktiviti baharu</button></div>
 <script>
 const $=id=>document.getElementById(id); const STORE='msa_events_v1', PREF='msa_prefs_v1';
-let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), alerted=new Set(JSON.parse(localStorage.getItem('msa_alerted_v4')||'[]')), currentView='today';
+let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), alerted=new Set(JSON.parse(localStorage.getItem('msa_alerted_v9')||'[]')), currentView='today';
 let attentionActive=false;
 function activateAttention(title, body){attentionActive=true;const hero=document.querySelector('.hero');hero?.classList.add('attention');$('alertAttention').innerHTML='🔴 PERINGATAN AKTIF — '+String(title||'SILA SEMAK JADUAL').replace(/[<>]/g,'')+'<br><span style="font-size:12px;font-weight:600">'+String(body||'Semak aktiviti yang perlu dilakukan.').replace(/[<>]/g,'')+'</span><br><button class="ackAlert" id="ackAlert" type="button">SAYA DAH NAMPAK</button>';document.title='🔴 PERINGATAN AKTIF | Mobile Schedule Alert';$('ackAlert').onclick=clearAttention;}
 function clearAttention(){attentionActive=false;document.querySelector('.hero')?.classList.remove('attention');$('alertAttention').innerHTML='';document.title='Mobile Schedule Alert';}
@@ -286,10 +286,10 @@ async function checkAlerts(){
    if(!e.alertOn||!Number(e.remind)||isDone(e))continue;
    const start=dateTime({...e,date:e.instanceDate});
    const mins=(start-now)/60000;
-   const key=String(e.id)+'|'+e.instanceDate;
+   const key=[String(e.id),e.instanceDate,String(e.time||'').slice(0,5),Number(e.remind)||0].join('|');
    if(mins>=0&&mins<=Number(e.remind)&&!alerted.has(key)){
      alerted.add(key);
-     try{localStorage.setItem('msa_alerted_v4',JSON.stringify([...alerted].slice(-500)))}catch(_){}
+     try{localStorage.setItem('msa_alerted_v9',JSON.stringify([...alerted].slice(-500)))}catch(_){}
      const title='Peringatan: '+e.title;
      const body=`Bermula ${e.time} · ${e.category}${e.notes?' · '+e.notes:''}`;
      activateAttention(title,body);
