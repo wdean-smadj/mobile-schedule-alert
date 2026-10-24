@@ -27,7 +27,7 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <main>
 <section class="hero"><div class="eyebrow">Hari ini</div><div class="clock" id="clock">--:--:--</div><p id="todayLabel">Memuatkan tarikh…</p><p id="nextLine" style="margin-top:10px;font-weight:700">Semak jadual hari ini.</p></section>
 <div class="stats"><div class="stat"><b id="countToday">0</b><span>Aktiviti hari ini</span></div><div class="stat"><b id="countPending">0</b><span>Belum selesai</span></div><div class="stat"><b id="countAlerts">0</b><span>Peringatan aktif</span></div></div>
-<div class="notice">📌 Peringatan V4 menggunakan notifikasi pelayar apabila aplikasi berjalan. Peringatan tepat ketika aplikasi ditutup tidak dijamin oleh PWA biasa; benarkan notifikasi dan kekalkan aplikasi terbuka untuk ujian.</div>
+<div class="notice">📌 Peringatan memerlukan suis Alert aktif, masa Ingatkan sebelum lebih daripada Tiada, kebenaran notifikasi dibenarkan, dan aplikasi kekal terbuka. PWA biasa tidak menjamin alarm ketika aplikasi ditutup.</div>
 <nav class="tabs"><button class="tab active" data-view="today">Hari ini</button><button class="tab" data-view="week">Minggu ini</button><button class="tab" data-view="add">＋ Tambah jadual</button><button class="tab" data-view="settings">Tetapan</button></nav>
 <section id="view-today"><div class="section-title"><h2>Jadual hari ini</h2><span class="muted" id="todayCountLabel"></span></div><div id="todayList"></div></section>
 <section id="view-week" class="hidden"><div class="section-title"><h2>Jadual minggu ini</h2><span class="muted">Ahad – Sabtu</span></div><div id="weekList"></div></section>
@@ -234,7 +234,7 @@ $('saveGasUrl')?.addEventListener('click',()=>{
 });
 $('syncNow')?.addEventListener('click',syncWithGas);
 
-async function checkAlerts(){
+async async function checkAlerts(){
  const now=new Date();
  for(const e of instancesFor(now)){
    if(!e.alertOn||!Number(e.remind)||isDone(e))continue;
@@ -260,7 +260,7 @@ async function checkAlerts(){
    }
  }
 }
-function tick(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});checkAlerts()}
+function tick(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});checkAlerts().catch(err=>console.error('MSA alert error',err))}
 $('date').value=localDate();render();tick();setInterval(tick,15000);setInterval(render,60000);
 if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script></body></html>
