@@ -95,8 +95,66 @@ function showView(v){currentView=v;document.querySelectorAll('[id^="view-"]').fo
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 function resetForm(){ $('eventForm').reset();$('eventId').value='';$('date').value=localDate();$('duration').value=60;$('remind').value=String(prefs.defaultRemind??10);$('alertOn').checked=true;$('formTitle').textContent='Tambah aktiviti'}
 $('resetForm').onclick=resetForm;$('quickAdd').onclick=()=>{resetForm();showView('add')};
-$('eventForm').addEventListener('submit',ev=>{ev.preventDefault();let id=$('eventId').value||crypto.randomUUID();const old=events.find(e=>e.id===id);let e={id,title:$('title').value.trim(),date:normalizeDateKey($('date').value),time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:Number($('remind').value),priority:$('priority').value,notes:$('notes').value.trim(),alertOn:$('alertOn').checked,doneDates:old?.doneDates||[]};if(old)events=events.map(x=>x.id===id?e:x);else events.push(e);save();resetForm();showView('today');if(gasUrl()){setSyncStatus('Menyimpan aktiviti ke Google Sheets…');saveEventToCloud(e).then(()=>setSyncStatus('Aktiviti berjaya disimpan ke Google Sheets.',true)).catch(err=>setSyncStatus('Aktiviti disimpan pada peranti, tetapi gagal ke Google Sheets: '+err.message))}});
-document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b)return;const e=events.find(x=>x.id===b.dataset.id);if(!e)return;const a=b.dataset.action;if(a==='delete'){if(confirm(`Padam aktiviti “${e.title}”?`)){events=events.filter(x=>x.id!==e.id);save()}}if(a==='edit'){ $('eventId').value=e.id;for(const k of ['title','date','time','duration','category','repeat','remind','priority','notes'])$(k).value=e[k]??'';$('alertOn').checked=e.alertOn;$('formTitle').textContent='Edit aktiviti';showView('add')}if(a==='done'){e.doneDates=e.doneDates||[];const d=b.dataset.date;if(e.doneDates.includes(d))e.doneDates=e.doneDates.filter(x=>x!==d);else e.doneDates.push(d);save()}});
+$('eventForm').addEventListener('submit',async ev=>{
+ ev.preventDefault();
+ const id=$('eventId').value||crypto.randomUUID();
+ const old=events.find(e=>String(e.id)===String(id));
+ const e={id,title:$('title').value.trim(),date:normalizeDateKey($('date').value),time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:Number($('remind').value),priority:$('priority').value,notes:$('notes').value.trim(),alertOn:$('alertOn').checked,doneDates:old?.doneDates||[]};
+ if(old)events=events.map(x=>String(x.id)===String(id)?e:x);else events.push(e);
+ save();resetForm();showView('today');
+ if(gasUrl()){
+   try{setSyncStatus('Menyimpan aktiviti ke Google Sheets…');await saveEventToCloud(e);setSyncStatus('Aktiviti berjaya disimpan ke Google Sheets.',true)}
+   catch(err){setSyncStatus('Aktiviti disimpan pada peranti tetapi gagal ke Google Sheets: '+err.message)}
+ }
+});
+document.addEventListener('click',async ev=>{
+ const b=ev.target.closest('[data-action]');
+ if(!b)return;
+ const e=events.find(x=>String(x.id)===String(b.dataset.id));
+ if(!e)return;
+ const a=b.dataset.action;
+ if(a==='edit'){
+   $('eventId').value=e.id;
+   for(const k of ['title','date','time','duration','category','repeat','remind','priority','notes'])$(k).value=e[k]??'';
+   $('alertOn').checked=!!e.alertOn;
+   $('formTitle').textContent='Edit aktiviti';
+   showView('add');
+   return;
+ }
+ if(a==='delete'){
+   if(!confirm(`Padam aktiviti “${e.title}” daripada peranti dan Google Sheets?`))return;
+   try{
+     if(gasUrl()){
+       setSyncStatus('Memadam aktiviti daripada Google Sheets…');
+       const result=await gasCall('delete',{id:String(e.id)});
+       if(!result||!result.ok)throw new Error(result?.error||'Backend gagal memadam rekod.');
+     }
+     events=events.filter(x=>String(x.id)!==String(e.id));
+     save();
+     if(gasUrl())setSyncStatus('Aktiviti dipadam daripada peranti dan Google Sheets.',true);
+   }catch(err){
+     setSyncStatus('Gagal padam daripada Google Sheets: '+err.message);
+     alert('Aktiviti tidak dipadam daripada peranti kerana pemadaman awan gagal. Semak sambungan dan cuba lagi.');
+   }
+   return;
+ }
+ if(a==='done'){
+   const d=b.dataset.date;
+   e.doneDates=e.doneDates||[];
+   if(e.doneDates.includes(d))e.doneDates=e.doneDates.filter(x=>x!==d);
+   else e.doneDates.push(d);
+   save();
+   if(gasUrl()){
+     try{
+       setSyncStatus('Menyimpan status selesai ke Google Sheets…');
+       await saveEventToCloud(e);
+       setSyncStatus('Status aktiviti berjaya disegerakkan ke Google Sheets.',true);
+     }catch(err){
+       setSyncStatus('Status disimpan pada peranti tetapi gagal ke Google Sheets: '+err.message);
+     }
+   }
+ }
+});
 async function askNotification(){if(!('Notification'in window)){alert('Pelayar ini tidak menyokong Web Notification.');return}try{const p=await Notification.requestPermission();updateNotifStatus();if(p==='granted')new Notification('Mobile Schedule Alert',{body:'Notifikasi berjaya diaktifkan.'})}catch(e){alert('Tidak dapat meminta kebenaran notifikasi. Cuba melalui HTTPS dan pelayar yang disokong.')}}
 function updateNotifStatus(){if(!('Notification'in window))$('notifStatus').textContent='Pelayar tidak menyokong notifikasi';else $('notifStatus').textContent='Status: '+Notification.permission}
 $('enableNotifications').onclick=askNotification;
@@ -111,6 +169,7 @@ function gasUrl(){return (localStorage.getItem('msa_gas_url')||'').trim()}
 function setSyncStatus(msg,ok=false){const el=$('syncStatus');if(el){el.textContent=msg;el.className=ok?'success':'muted'}}
 function jsonp(url,timeoutMs=20000){return new Promise((resolve,reject)=>{const cb='msa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);const script=document.createElement('script');let done=false;const timer=setTimeout(()=>finish(new Error('Masa menunggu tamat. Semak URL/deployment Apps Script.')),timeoutMs);function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[cb]}catch{}script.remove();err?reject(err):resolve(data)}window[cb]=data=>finish(null,data);script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Semak URL /exec dan akses deployment.'));script.src=url+(url.includes('?')?'&':'?')+'callback='+encodeURIComponent(cb)+'&_='+Date.now();document.head.appendChild(script)})}
 async function gasCall(action,extra={}){const base=gasUrl();if(!base)throw new Error('Masukkan URL Apps Script dahulu di Tetapan.');const q=new URLSearchParams({action,...extra});return await jsonp(base+(base.includes('?')?'&':'?')+q.toString())}
+async function saveEventToCloud(event){const result=await gasCall('upsert',{payload:JSON.stringify(event)});if(!result||!result.ok)throw new Error(result?.error||'Gagal menyimpan ke Google Sheets.');return result;}
 async function syncWithGas(){
  if(!gasUrl()){showView('settings');setSyncStatus('Masukkan URL Apps Script dahulu.');return}
  const btn=$('syncNow');
