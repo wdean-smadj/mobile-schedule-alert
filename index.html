@@ -179,24 +179,50 @@ async function askNotification(){
 function updateNotifStatus(){if(!('Notification'in window))$('notifStatus').textContent='Pelayar tidak menyokong notifikasi';else $('notifStatus').textContent='Status: '+Notification.permission}
 $('enableNotifications').onclick=askNotification;
 $('notifyTest').onclick=async()=>{
- const btn=$('notifyTest');
- try{
-   if(!('Notification' in window)){alert('Pelayar ini tidak menyokong notifikasi. Buka pautan menggunakan Chrome.');return}
-   let permission=Notification.permission;
-   if(permission==='default') permission=await Notification.requestPermission();
-   updateNotifStatus();
-   if(permission!=='granted'){alert('Notifikasi belum dibenarkan. Buka tetapan laman web dan pilih Notifications > Allow. Status: '+permission);return}
-   const opts={body:'Ujian berjaya. Notifikasi peranti ini berfungsi ketika aplikasi aktif.',icon:'./icon.svg',tag:'msa-test-'+Date.now()};
-   // Use the browser notification API first so a broken Service Worker cannot leave this button hanging.
-   try { new Notification('Mobile Schedule Alert · Ujian',opts); $('notifStatus').textContent='Status: granted · Ujian dihantar'; }
-   catch(err) {
-     if('serviceWorker' in navigator){
-       const reg=await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Service Worker belum sedia')),4000))]);
-       await reg.showNotification('Mobile Schedule Alert · Ujian',opts);
-       $('notifStatus').textContent='Status: granted · Ujian dihantar melalui Service Worker';
-     } else throw err;
-   }
- }catch(err){alert('Ujian notifikasi gagal: '+(err && err.message ? err.message : err));$('notifStatus').textContent='Ralat notifikasi: '+(err && err.message ? err.message : err);}
+  const btn=$('notifyTest');
+  // This test intentionally exercises the same visible attention layer as a real alert.
+  activateAttention('UJIAN ALERT','Jika jam merah berkelip, lapisan amaran berfungsi.');
+  try {
+    // Audio is started directly from the button gesture so browsers are more likely to allow it.
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(Ctx){
+      const ctx=new Ctx();
+      if(ctx.state==='suspended') await ctx.resume();
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='square'; osc.frequency.value=880; gain.gain.value=0.16;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime+0.45);
+      osc.onended=()=>ctx.close();
+    }
+  } catch(err) { console.warn('MSA test sound failed',err); }
+  try {
+    if(!('Notification' in window)){
+      $('notifStatus').textContent='Paparan merah diuji; pelayar ini tidak menyokong notifikasi.';
+      alert('Paparan merah diuji. Pelayar ini tidak menyokong notifikasi sistem.');
+      return;
+    }
+    let permission=Notification.permission;
+    if(permission==='default') permission=await Notification.requestPermission();
+    updateNotifStatus();
+    if(permission!=='granted'){
+      $('notifStatus').textContent='Paparan merah diuji; notifikasi: '+permission;
+      alert('Jam merah sepatutnya berkelip. Notifikasi sistem belum dibenarkan: '+permission);
+      return;
+    }
+    const opts={body:'Ujian alert: paparan merah dan bunyi diuji.',icon:'./icon.svg',tag:'msa-test-'+Date.now()};
+    let sent=false;
+    try { new Notification('Mobile Schedule Alert · UJIAN',opts); sent=true; }
+    catch(err) {
+      if('serviceWorker' in navigator) {
+        const reg=await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Service Worker belum sedia')),4000))]);
+        await reg.showNotification('Mobile Schedule Alert · UJIAN',opts); sent=true;
+      } else throw err;
+    }
+    $('notifStatus').textContent='Ujian dijalankan: jam merah aktif'+(sent?' dan notifikasi dihantar.':'.');
+  } catch(err) {
+    $('notifStatus').textContent='Ralat ujian: '+(err?.message||String(err));
+    alert('Ujian alert gagal: '+(err?.message||String(err)));
+  }
 };
 $('defaultRemind').onchange=()=>{prefs.defaultRemind=Number($('defaultRemind').value);localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};$('schoolName').onchange=()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};
 $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({events,prefs,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='msa-backup-'+localDate()+'.json';a.click();URL.revokeObjectURL(a.href)};
@@ -286,7 +312,7 @@ async function checkAlerts(){
 function updateClock(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});if(attentionActive)document.title='🔴 PERINGATAN AKTIF | '+$('clock').textContent}
 function tickAlerts(){checkAlerts().catch(err=>console.error('MSA alert error',err))}
 $('date').value=localDate();render();updateClock();tickAlerts();
-setInterval(updateClock,1000);setInterval(tickAlerts,10000);setInterval(render,30000);
+setInterval(updateClock,1000);setInterval(tickAlerts,1000);setInterval(render,30000);
 if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(err=>console.error('MSA service worker error',err));
 // Restore cloud data automatically on devices where the Web App URL was saved.
 if(gasUrl())setTimeout(()=>syncWithGas(),800);
