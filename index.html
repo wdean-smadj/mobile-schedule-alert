@@ -27,7 +27,7 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <main>
 <section class="hero"><div class="eyebrow">Hari ini</div><div class="clock" id="clock">--:--:--</div><p id="todayLabel">Memuatkan tarikh…</p><p id="nextLine" style="margin-top:10px;font-weight:700">Semak jadual hari ini.</p></section>
 <div class="stats"><div class="stat"><b id="countToday">0</b><span>Aktiviti hari ini</span></div><div class="stat"><b id="countPending">0</b><span>Belum selesai</span></div><div class="stat"><b id="countAlerts">0</b><span>Peringatan aktif</span></div></div>
-<div class="notice">📌 Peringatan dalam versi ini berfungsi ketika aplikasi dibuka. Pelayar/telefon mungkin menyekat alarm latar belakang. Benarkan notifikasi dan kekalkan aplikasi berjalan untuk ujian awal.</div>
+<div class="notice">📌 Peringatan V4 menggunakan notifikasi pelayar apabila aplikasi berjalan. Peringatan tepat ketika aplikasi ditutup tidak dijamin oleh PWA biasa; benarkan notifikasi dan kekalkan aplikasi terbuka untuk ujian.</div>
 <nav class="tabs"><button class="tab active" data-view="today">Hari ini</button><button class="tab" data-view="week">Minggu ini</button><button class="tab" data-view="add">＋ Tambah jadual</button><button class="tab" data-view="settings">Tetapan</button></nav>
 <section id="view-today"><div class="section-title"><h2>Jadual hari ini</h2><span class="muted" id="todayCountLabel"></span></div><div id="todayList"></div></section>
 <section id="view-week" class="hidden"><div class="section-title"><h2>Jadual minggu ini</h2><span class="muted">Ahad – Sabtu</span></div><div id="weekList"></div></section>
@@ -61,7 +61,7 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <div class="bottom"><button class="btn secondary" id="notifyTest">Uji notifikasi</button><button class="btn" id="quickAdd">＋ Aktiviti baharu</button></div>
 <script>
 const $=id=>document.getElementById(id); const STORE='msa_events_v1', PREF='msa_prefs_v1';
-let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), alerted=new Set(), currentView='today';
+let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), alerted=new Set(JSON.parse(localStorage.getItem('msa_alerted_v4')||'[]')), currentView='today';
 function loadEvents(){try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}}
 function save(){localStorage.setItem(STORE,JSON.stringify(events));render()}
 function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -155,10 +155,29 @@ document.addEventListener('click',async ev=>{
    }
  }
 });
-async function askNotification(){if(!('Notification'in window)){alert('Pelayar ini tidak menyokong Web Notification.');return}try{const p=await Notification.requestPermission();updateNotifStatus();if(p==='granted')new Notification('Mobile Schedule Alert',{body:'Notifikasi berjaya diaktifkan.'})}catch(e){alert('Tidak dapat meminta kebenaran notifikasi. Cuba melalui HTTPS dan pelayar yang disokong.')}}
+async function askNotification(){
+ if(!('Notification' in window)){alert('Pelayar ini tidak menyokong Web Notification.');return}
+ try{
+   const p=await Notification.requestPermission();
+   updateNotifStatus();
+   if(p==='granted'){
+     const opts={body:'Notifikasi berjaya diaktifkan. Kekalkan aplikasi terbuka untuk peringatan berjadual.',icon:'icon.svg',tag:'msa-enabled'};
+     if('serviceWorker' in navigator){
+       try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('Mobile Schedule Alert',opts)}
+       catch(_){new Notification('Mobile Schedule Alert',opts)}
+     }else new Notification('Mobile Schedule Alert',opts);
+   }
+ }catch(e){alert('Tidak dapat meminta kebenaran notifikasi. Cuba melalui HTTPS dan pelayar yang disokong.')}
+}
 function updateNotifStatus(){if(!('Notification'in window))$('notifStatus').textContent='Pelayar tidak menyokong notifikasi';else $('notifStatus').textContent='Status: '+Notification.permission}
 $('enableNotifications').onclick=askNotification;
-$('notifyTest').onclick=async()=>{if(!('Notification'in window)){alert('Pelayar tidak menyokong notifikasi.');return}if(Notification.permission!=='granted'){await askNotification();return}new Notification('MSA · Ujian notifikasi',{body:'Bagus bro! Notifikasi pada peranti ini berfungsi ketika aplikasi aktif.'})};
+$('notifyTest').onclick=async()=>{
+ if(!('Notification'in window)){alert('Pelayar tidak menyokong notifikasi.');return}
+ if(Notification.permission!=='granted'){await askNotification();return}
+ const opts={body:'Bagus bro! Notifikasi pada peranti ini berfungsi ketika aplikasi aktif.',icon:'icon.svg',tag:'msa-test-'+Date.now()};
+ try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.ready;await reg.showNotification('MSA · Ujian notifikasi',opts)}else new Notification('MSA · Ujian notifikasi',opts)}
+ catch(_){new Notification('MSA · Ujian notifikasi',opts)}
+};
 $('defaultRemind').onchange=()=>{prefs.defaultRemind=Number($('defaultRemind').value);localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};$('schoolName').onchange=()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};
 $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({events,prefs,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='msa-backup-'+localDate()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('importFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.events))throw Error('Format tidak sah');if(confirm('Import akan menggantikan jadual sedia ada. Teruskan?')){events=data.events;prefs=data.prefs||{};localStorage.setItem(PREF,JSON.stringify(prefs));save();$('settingsMsg').textContent='Data berjaya diimport.'}}catch(e){alert('Fail JSON tidak sah atau rosak.')}ev.target.value=''};
@@ -215,7 +234,32 @@ $('saveGasUrl')?.addEventListener('click',()=>{
 });
 $('syncNow')?.addEventListener('click',syncWithGas);
 
-function checkAlerts(){const now=new Date();for(const e of instancesFor(now)){if(!e.alertOn||!e.remind||isDone(e))continue;const start=dateTime({...e,date:e.instanceDate});const mins=(start-now)/60000;const key=e.id+'|'+e.instanceDate;if(mins>=0&&mins<=e.remind&& !alerted.has(key)){alerted.add(key);if('Notification'in window&&Notification.permission==='granted'){new Notification('Peringatan: '+e.title,{body:`Bermula ${e.time} · ${e.category}${e.notes?' · '+e.notes:''}`,icon:'icon.svg',tag:key})}else if(mins<=1){try{navigator.vibrate?.([200,100,200])}catch{};}}}}
+async function checkAlerts(){
+ const now=new Date();
+ for(const e of instancesFor(now)){
+   if(!e.alertOn||!Number(e.remind)||isDone(e))continue;
+   const start=dateTime({...e,date:e.instanceDate});
+   const mins=(start-now)/60000;
+   const key=String(e.id)+'|'+e.instanceDate;
+   if(mins>=0&&mins<=Number(e.remind)&&!alerted.has(key)){
+     alerted.add(key);
+     try{localStorage.setItem('msa_alerted_v4',JSON.stringify([...alerted].slice(-500)))}catch(_){}
+     const title='Peringatan: '+e.title;
+     const body=`Bermula ${e.time} · ${e.category}${e.notes?' · '+e.notes:''}`;
+     if('Notification' in window&&Notification.permission==='granted'){
+       const opts={body,icon:'icon.svg',tag:key,renotify:false};
+       let sent=false;
+       if('serviceWorker' in navigator){
+         try{const reg=await navigator.serviceWorker.ready;await reg.showNotification(title,opts);sent=true}catch(_){}
+       }
+       if(!sent){try{new Notification(title,opts)}catch(_){}}
+     }else{
+       try{navigator.vibrate?.([250,100,250])}catch(_){}
+       if(mins<=1)alert(title+'\\n'+body);
+     }
+   }
+ }
+}
 function tick(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});checkAlerts()}
 $('date').value=localDate();render();tick();setInterval(tick,15000);setInterval(render,60000);
 if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
