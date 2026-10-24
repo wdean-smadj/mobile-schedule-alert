@@ -224,16 +224,35 @@ $('notifyTest').onclick=async()=>{
     alert('Ujian alert gagal: '+(err?.message||String(err)));
   }
 };
-$('defaultRemind').onchange=()=>{prefs.defaultRemind=Number($('defaultRemind').value);localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};$('schoolName').onchange=()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};
+$('defaultRemind').onchange=async()=>{prefs.defaultRemind=Number($('defaultRemind').value);localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Menyimpan tetapan bersama…';try{await saveSharedPrefs()}catch(err){$('settingsMsg').textContent='Disimpan pada peranti sahaja: '+err.message}};
+$('schoolName').onchange=async()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Menyimpan tetapan bersama…';try{await saveSharedPrefs()}catch(err){$('settingsMsg').textContent='Disimpan pada peranti sahaja: '+err.message}};
 $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({events,prefs,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='msa-backup-'+localDate()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('importFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.events))throw Error('Format tidak sah');if(confirm('Import akan menggantikan jadual sedia ada. Teruskan?')){events=data.events;prefs=data.prefs||{};localStorage.setItem(PREF,JSON.stringify(prefs));save();$('settingsMsg').textContent='Data berjaya diimport.'}}catch(e){alert('Fail JSON tidak sah atau rosak.')}ev.target.value=''};
 $('clearData').onclick=()=>{if(confirm('Padam SEMUA jadual pada peranti ini? Tindakan ini tidak boleh dibatalkan.')){events=[];save();$('settingsMsg').textContent='Semua jadual dipadam.'}};
 
 // V2 Google Apps Script connection using JSONP. Local storage remains the offline cache.
-function gasUrl(){return (localStorage.getItem('msa_gas_url')||'').trim()}
+const DEFAULT_GAS_URL='https://script.google.com/a/macros/moe-dl.edu.my/s/AKfycbwdpPBFyz3GPFqw-36UX0PQHR7duGGEiwC-5yztT6ErvruSC5b0pjq6J4ZTxgZM17ERkA/exec';
+function gasUrl(){return (localStorage.getItem('msa_gas_url')||DEFAULT_GAS_URL).trim()}
 function setSyncStatus(msg,ok=false){const el=$('syncStatus');if(el){el.textContent=msg;el.className=ok?'success':'muted'}}
 function jsonp(url,timeoutMs=20000){return new Promise((resolve,reject)=>{const cb='msa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);const script=document.createElement('script');let done=false;const timer=setTimeout(()=>finish(new Error('Masa menunggu tamat. Semak URL/deployment Apps Script.')),timeoutMs);function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[cb]}catch{}script.remove();err?reject(err):resolve(data)}window[cb]=data=>finish(null,data);script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Semak URL /exec dan akses deployment.'));script.src=url+(url.includes('?')?'&':'?')+'callback='+encodeURIComponent(cb)+'&_='+Date.now();document.head.appendChild(script)})}
 async function gasCall(action,extra={}){const base=gasUrl();if(!base)throw new Error('Masukkan URL Apps Script dahulu di Tetapan.');const q=new URLSearchParams({action,...extra});return await jsonp(base+(base.includes('?')?'&':'?')+q.toString())}
+async function saveSharedPrefs(){
+  const shared={defaultRemind:Number(prefs.defaultRemind??10),schoolName:String(prefs.schoolName||'')};
+  const r=await gasCall('settingsSave',{payload:JSON.stringify(shared)});
+  if(!r||!r.ok)throw new Error(r?.error||'Gagal menyimpan tetapan bersama.');
+  setSyncStatus('Tetapan bersama berjaya disimpan.',true);
+}
+async function loadSharedPrefs(){
+  try{
+    const r=await gasCall('settingsGet');
+    if(!r||!r.ok||!r.settings)return;
+    prefs={...prefs,...r.settings};
+    localStorage.setItem(PREF,JSON.stringify(prefs));
+    $('defaultRemind').value=String(prefs.defaultRemind??10);
+    $('schoolName').value=prefs.schoolName||'';
+    $('settingsMsg').textContent='Tetapan bersama dimuatkan daripada Google Sheets.';
+  }catch(err){console.warn('Tetapan bersama tidak dapat dimuatkan:',err.message)}
+}
 async function saveEventToCloud(event){const result=await gasCall('upsert',{payload:JSON.stringify(event)});if(!result||!result.ok)throw new Error(result?.error||'Gagal menyimpan ke Google Sheets.');return result;}
 async function syncWithGas(){
  if(!gasUrl()){showView('settings');setSyncStatus('Masukkan URL Apps Script dahulu.');return}
@@ -315,5 +334,5 @@ $('date').value=localDate();render();updateClock();tickAlerts();
 setInterval(updateClock,1000);setInterval(tickAlerts,1000);setInterval(render,30000);
 if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(err=>console.error('MSA service worker error',err));
 // Restore cloud data automatically on devices where the Web App URL was saved.
-if(gasUrl())setTimeout(()=>syncWithGas(),800);
+if(gasUrl())setTimeout(()=>{loadSharedPrefs();syncWithGas()},800);
 </script></body></html>
