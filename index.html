@@ -96,9 +96,15 @@ async function gasCall(action,extra={}){const base=gasUrl();if(!base)throw new E
 async function syncWithGas(){if(!gasUrl()){showView('settings');setSyncStatus('Masukkan URL Apps Script dahulu.');return}const btn=$('syncNow');if(btn){btn.disabled=true;btn.textContent='Sedang sync…'}setSyncStatus('Menyambung ke Google Apps Script…');try{for(let i=0;i<events.length;i++){await gasCall('upsert',{payload:JSON.stringify(events[i])});setSyncStatus(`Menghantar jadual… ${i+1}/${events.length}`)}const result=await gasCall('list');if(!result||!result.ok)throw new Error(result?.error||'Respons backend tidak sah.');const cloud=Array.isArray(result.events)?result.events:[];const map=new Map(events.map(e=>[e.id,e]));cloud.forEach(e=>map.set(e.id,e));events=Array.from(map.values()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));localStorage.setItem(STORE,JSON.stringify(events));render();setSyncStatus(`Sync berjaya. ${cloud.length} rekod diterima daripada Google Sheets.`,true)}catch(err){setSyncStatus('Sync gagal: '+err.message);console.error(err)}finally{if(btn){btn.disabled=false;btn.textContent='⟳ Sync sekarang'}}}
 $('saveGasUrl')?.addEventListener('click',()=>{
   const u = $('gasUrl').value.trim();
-  const valid = /^https:\/\/script\.google\.com\/(?:a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec\/?$/.test(u);
+  let valid = false;
+  try {
+    const parsed = new URL(u);
+    valid = parsed.protocol === 'https:' &&
+      parsed.hostname === 'script.google.com' &&
+      /\/s\/[^/]+\/exec\/?$/.test(parsed.pathname);
+  } catch (_) {}
   if (!valid) {
-    setSyncStatus('URL tidak sah. Pastikan salin Web app URL penuh yang berakhir dengan /exec.');
+    setSyncStatus('URL tidak sah. Salin semula Web app URL penuh daripada Deploy > Manage deployments.');
     return;
   }
   localStorage.setItem('msa_gas_url', u);
