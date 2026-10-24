@@ -223,7 +223,7 @@ $('saveGasUrl')?.addEventListener('click',()=>{
     const parsed = new URL(u);
     valid = parsed.protocol === 'https:' &&
       parsed.hostname === 'script.google.com' &&
-      /\/s\/[^/]+\/exec\/?$/.test(parsed.pathname);
+      (/\/s\/[^/]+\/exec\/?$/.test(parsed.pathname) || /\/a\/macros\/[^/]+\/s\/[^/]+\/exec\/?$/.test(parsed.pathname));
   } catch (_) {}
   if (!valid) {
     setSyncStatus('URL tidak sah. Salin semula Web app URL penuh daripada Deploy > Manage deployments.');
@@ -234,7 +234,7 @@ $('saveGasUrl')?.addEventListener('click',()=>{
 });
 $('syncNow')?.addEventListener('click',syncWithGas);
 
-async async function checkAlerts(){
+async function checkAlerts(){
  const now=new Date();
  for(const e of instancesFor(now)){
    if(!e.alertOn||!Number(e.remind)||isDone(e))continue;
@@ -260,7 +260,11 @@ async async function checkAlerts(){
    }
  }
 }
-function tick(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});checkAlerts().catch(err=>console.error('MSA alert error',err))}
-$('date').value=localDate();render();tick();setInterval(tick,15000);setInterval(render,60000);
-if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+function updateClock(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false})}
+function tickAlerts(){checkAlerts().catch(err=>console.error('MSA alert error',err))}
+$('date').value=localDate();render();updateClock();tickAlerts();
+setInterval(updateClock,1000);setInterval(tickAlerts,10000);setInterval(render,30000);
+if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(err=>console.error('MSA service worker error',err));
+// Restore cloud data automatically on devices where the Web App URL was saved.
+if(gasUrl())setTimeout(()=>syncWithGas(),800);
 </script></body></html>
