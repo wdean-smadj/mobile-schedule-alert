@@ -57,8 +57,8 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <div class="panel"><h3 style="margin-top:0">☁️ Google Sheets Sync (V2)</h3>
 <p class="muted">Masukkan URL Web App Apps Script yang berakhir dengan /exec.</p>
 <label for="gasUrl">Apps Script Web App URL</label><input id="gasUrl" type="url" placeholder="https://script.google.com/macros/s/DEPLOYMENT_ID/exec">
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="saveGasUrl">Simpan URL</button><button class="btn secondary" id="syncNow">⟳ Sync sekarang</button></div>
-<p id="syncStatus" class="muted">Backend belum disambungkan.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="saveGasUrl">Simpan URL</button><button class="btn secondary" id="syncNow">⟳ Sync sekarang</button><button class="btn secondary" id="checkConnection">Semak login & sambungan</button></div>
+<p id="syncStatus" class="muted">Backend belum disambungkan.</p><p id="connectionStatus" class="muted">Status login belum disemak.</p>
 <p class="muted">Buat sandaran JSON sebelum sync pertama. Jangan gunakan prototaip ini untuk data sulit.</p></div>
 <div class="panel"><h3 style="margin-top:0">Tentang alert</h3><p class="muted">Notifikasi setempat disemak oleh aplikasi semasa ia terbuka. Notifikasi web bukan alarm sistem dan tidak dijamin berjalan selepas pelayar ditutup. Push sebenar memerlukan pelayan, kunci VAPID dan langganan push.</p></div></section>
 </main>
@@ -215,7 +215,19 @@ $('importFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{
 $('clearData').onclick=()=>{if(confirm('Padam SEMUA jadual pada peranti ini? Tindakan ini tidak boleh dibatalkan.')){events=[];save();$('settingsMsg').textContent='Semua jadual dipadam.'}};
 
 // V2 Google Apps Script connection using JSONP. Local storage remains the offline cache.
-function gasUrl(){return (localStorage.getItem('msa_gas_url')||'').trim()}
+function normalizeGasUrl(raw){
+ const u=String(raw||'').trim();
+ // Use the KPM Workspace URL route for this deployment when the short route was saved.
+ const m=u.match(/^https:\/\/script\.google\.com\/macros\/s\/([^/]+)\/exec\/?$/);
+ if(m)return 'https://script.google.com/a/macros/moe-dl.edu.my/s/'+m[1]+'/exec';
+ return u;
+}
+function gasUrl(){
+ const raw=(localStorage.getItem('msa_gas_url')||'').trim();
+ const normalized=normalizeGasUrl(raw);
+ if(raw && normalized!==raw) localStorage.setItem('msa_gas_url',normalized);
+ return normalized;
+}
 function setSyncStatus(msg,ok=false){const el=$('syncStatus');if(el){el.textContent=msg;el.className=ok?'success':'muted'}}
 function jsonp(url,timeoutMs=20000){return new Promise((resolve,reject)=>{const cb='msa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);const script=document.createElement('script');let done=false;const timer=setTimeout(()=>finish(new Error('Masa menunggu tamat. Semak URL/deployment Apps Script.')),timeoutMs);function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[cb]}catch{}script.remove();err?reject(err):resolve(data)}window[cb]=data=>finish(null,data);script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Semak URL /exec dan akses deployment.'));script.src=url+(url.includes('?')?'&':'?')+'callback='+encodeURIComponent(cb)+'&_='+Date.now();document.head.appendChild(script)})}
 async function gasCall(action,extra={}){const base=gasUrl();if(!base)throw new Error('Masukkan URL Apps Script dahulu di Tetapan.');const q=new URLSearchParams({action,...extra});return await jsonp(base+(base.includes('?')?'&':'?')+q.toString())}
@@ -248,7 +260,7 @@ async function syncWithGas(){
  }
 }
 $('saveGasUrl')?.addEventListener('click',()=>{
-  const u = $('gasUrl').value.trim();
+  const u = normalizeGasUrl($('gasUrl').value.trim());
   let valid = false;
   try {
     const parsed = new URL(u);
@@ -264,6 +276,19 @@ $('saveGasUrl')?.addEventListener('click',()=>{
   setSyncStatus('URL berjaya disimpan. Tekan Sync sekarang.', true);
 });
 $('syncNow')?.addEventListener('click',syncWithGas);
+$('checkConnection')?.addEventListener('click',async()=>{
+ const el=$('connectionStatus');
+ if(el)el.textContent='Menyemak deployment…';
+ try{
+   const result=await gasCall('status');
+   if(!result||!result.ok)throw new Error(result?.error||'Respons status tidak sah');
+   const who=result.activeEmail||'Identiti pelawat tidak didedahkan oleh Google';
+   const owner=result.effectiveEmail||'Pemilik deployment tidak dapat dikenal pasti';
+   if(el)el.textContent='Sambungan OK · Akaun aktif: '+who+' · Jalankan sebagai: '+owner+' · Akses: '+(result.access||'tidak diketahui');
+ }catch(err){
+   if(el)el.textContent='Semakan gagal: '+err.message+' · URL yang digunakan: '+gasUrl();
+ }
+});
 
 async function checkAlerts(){
  const now=new Date();
