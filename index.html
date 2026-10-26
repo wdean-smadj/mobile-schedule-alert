@@ -2,9 +2,9 @@
 <html lang="ms">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1220"><meta name="description" content="Mobile Schedule Alert — jadual dan peringatan peribadi.">
+<meta name="theme-color" content="#0b1220"><meta name="description" content="Mobile Schedule — jadual peribadi dan sekolah.">
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>Mobile Schedule Alert</title>
+<title>Mobile Schedule</title>
 <style>
 :root{--bg:#0b1220;--panel:#121d30;--panel2:#17243a;--text:#eef4ff;--muted:#9fb0ca;--accent:#54d6c7;--line:#263650;--red:#ff8d9a;--yellow:#ffd27a}
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1220,#101d31 60%,#0b1220);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
@@ -14,7 +14,7 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 @keyframes msaRedFlash{0%,100%{color:#fff;text-shadow:0 0 4px #ff2638,0 0 14px #ff2638}50%{color:#ff2638;text-shadow:0 0 18px #ff2638,0 0 32px #ff2638}}
 @keyframes msaHeroFlash{0%,100%{border-color:#ff2638;box-shadow:0 0 0 2px #ff263855,0 0 22px #ff263866}50%{border-color:#ff8b95;box-shadow:0 0 0 5px #ff263866,0 0 32px #ff2638aa}}
 .hero.attention{animation:msaHeroFlash .8s infinite;background:linear-gradient(120deg,#511522,#15253d)}.hero.attention .clock{animation:msaRedFlash .65s infinite}
-.alertAttention{display:none;margin-top:12px;padding:10px 12px;background:#8b1022;border:1px solid #ff6b7a;border-radius:12px;color:#fff;font-weight:900;text-align:center;letter-spacing:.3px}.hero.attention .alertAttention{display:block}.ackAlert{margin-top:8px;border:1px solid #ff9aa4;background:#fff;color:#8b1022;border-radius:10px;padding:9px 12px;font-weight:900;cursor:pointer}
+
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0 20px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px}.stat b{font-size:23px;display:block}.stat span{font-size:12px;color:var(--muted)}
 .tabs{display:flex;gap:8px;overflow:auto;padding:3px 0 14px}.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:10px 14px;border-radius:12px;white-space:nowrap;font-weight:700}.tab.active{background:var(--accent);color:#08242a;border-color:var(--accent)}
 .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 2px 12px}.section-title h2{font-size:18px;margin:0}.muted{color:var(--muted);font-size:13px}
@@ -27,11 +27,11 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 @media(min-width:700px){.event{grid-template-columns:78px 1fr auto}.clock{font-size:38px}.stats{gap:14px}.stat{padding:16px}}
 </style></head>
 <body>
-<header><div class="brand"><div class="logo">⏰</div><div><h1>Mobile Schedule Alert</h1><div class="sub">Jadual peribadi · Sekolah · Peringatan</div></div></div></header>
+<header><div class="brand"><div class="logo">⏰</div><div><h1>Mobile Schedule</h1><div class="sub">Jadual peribadi · Sekolah</div></div></div></header>
 <main>
-<section class="hero"><div class="eyebrow">Hari ini</div><div class="clock" id="clock">--:--:--</div><p id="todayLabel">Memuatkan tarikh…</p><p id="nextLine" style="margin-top:10px;font-weight:700">Semak jadual hari ini.</p><div class="alertAttention" id="alertAttention" role="alert">🔴 PERINGATAN AKTIF — SILA SEMAK JADUAL<br><button class="ackAlert" id="ackAlert" type="button">SAYA DAH NAMPAK</button></div></section>
-<div class="stats"><div class="stat"><b id="countToday">0</b><span>Aktiviti hari ini</span></div><div class="stat"><b id="countPending">0</b><span>Belum selesai</span></div><div class="stat"><b id="countAlerts">0</b><span>Peringatan aktif</span></div></div>
-<div class="notice">📌 Peringatan memerlukan suis Alert aktif, masa Ingatkan sebelum lebih daripada Tiada, kebenaran notifikasi dibenarkan, dan aplikasi kekal terbuka. PWA biasa tidak menjamin alarm ketika aplikasi ditutup.</div>
+<section class="hero"><div class="eyebrow">Hari ini</div><div class="clock" id="clock">--:--:--</div><p id="todayLabel">Memuatkan tarikh…</p><p id="nextLine" style="margin-top:10px;font-weight:700">Semak jadual hari ini.</p></section>
+<div class="stats"><div class="stat"><b id="countToday">0</b><span>Aktiviti hari ini</span></div><div class="stat"><b id="countPending">0</b><span>Belum selesai</span></div></div>
+<div class="notice">☁️ Jadual disimpan melalui Google Sheets dan boleh disegerakkan antara telefon dan komputer.</div>
 <nav class="tabs"><button class="tab active" data-view="today">Hari ini</button><button class="tab" data-view="week">Minggu ini</button><button class="tab" data-view="add">＋ Tambah jadual</button><button class="tab" data-view="settings">Tetapan</button></nav>
 <section id="view-today"><div class="section-title"><h2>Jadual hari ini</h2><span class="muted" id="todayCountLabel"></span></div><div id="todayList"></div></section>
 <section id="view-week" class="hidden"><div class="section-title"><h2>Jadual minggu ini</h2><span class="muted">Ahad – Sabtu</span></div><div id="weekList"></div></section>
@@ -42,33 +42,27 @@ main{max-width:900px;margin:auto;padding:0 14px 100px}.hero{background:linear-gr
 <div class="grid2"><div><label for="date">Tarikh *</label><input id="date" type="date" required></div><div><label for="time">Masa mula *</label><input id="time" type="time" required></div></div>
 <div class="grid2"><div><label for="duration">Tempoh (minit)</label><input id="duration" type="number" min="5" max="720" value="60"></div><div><label for="category">Kategori</label><select id="category"><option>Peribadi</option><option>Sekolah</option><option>Mesyuarat</option><option>Panggilan</option><option>Tugasan</option><option>Lain-lain</option></select></div></div>
 <label for="repeat">Ulangan</label><select id="repeat"><option value="none">Sekali sahaja</option><option value="weekly">Setiap minggu (hari yang sama)</option></select>
-<div class="grid2"><div><label for="remind">Ingatkan sebelum</label><select id="remind"><option value="0">Tiada</option><option value="5">5 minit</option><option value="10" selected>10 minit</option><option value="15">15 minit</option><option value="30">30 minit</option><option value="60">1 jam</option></select></div><div><label for="priority">Keutamaan</label><select id="priority"><option>Biasa</option><option>Penting</option><option>Kritikal</option></select></div></div>
+<div><label for="priority">Keutamaan</label><select id="priority"><option>Biasa</option><option>Penting</option><option>Kritikal</option></select></div>
 <label for="notes">Nota / lokasi</label><textarea id="notes" placeholder="Contoh: Bilik mesyuarat / bawa fail"></textarea>
-<div class="checkrow"><input id="alertOn" type="checkbox" checked><label for="alertOn" style="margin:0">Aktifkan peringatan untuk aktiviti ini</label></div>
 <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap"><button class="btn" type="submit">Simpan aktiviti</button><button class="btn secondary" type="button" id="resetForm">Kosongkan</button></div>
 </form></section>
 <section id="view-settings" class="hidden"><div class="section-title"><h2>Tetapan & data</h2></div><div class="panel">
-<p class="muted">Aktifkan notifikasi, eksport sandaran atau import semula jadual anda.</p>
-<button class="btn" id="enableNotifications">🔔 Benarkan notifikasi</button> <span id="notifStatus" class="muted"></span>
-<label for="defaultRemind">Peringatan lalai untuk aktiviti baharu</label><select id="defaultRemind"><option value="0">Tiada</option><option value="5">5 minit</option><option value="10">10 minit</option><option value="15">15 minit</option><option value="30">30 minit</option><option value="60">1 jam</option></select>
+<p class="muted">Urus data jadual dan tetapan penyegerakan.</p>
 <label for="schoolName">Nama organisasi (paparan)</label><input id="schoolName" placeholder="SMadJiwa / Peribadi">
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn secondary" id="exportData">Eksport sandaran JSON</button><label class="btn secondary" for="importFile" style="margin:0;cursor:pointer">Import JSON</label><input id="importFile" type="file" accept="application/json" class="hidden"><button class="btn danger" id="clearData">Padam semua jadual</button></div>
 <p id="settingsMsg" class="muted"></p></div>
 <div class="panel"><h3 style="margin-top:0">☁️ Google Sheets Sync (V2)</h3>
 <p class="muted">Masukkan URL Web App Apps Script yang berakhir dengan /exec.</p>
 <label for="gasUrl">Apps Script Web App URL</label><input id="gasUrl" type="url" placeholder="https://script.google.com/macros/s/DEPLOYMENT_ID/exec">
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="saveGasUrl">Simpan URL</button><button class="btn secondary" id="syncNow">⟳ Sync sekarang</button><button class="btn secondary" id="checkConnection">Semak login & sambungan</button></div>
-<p id="syncStatus" class="muted">Backend belum disambungkan.</p><p id="connectionStatus" class="muted">Status login belum disemak.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="saveGasUrl">Simpan URL</button><button class="btn secondary" id="syncNow">⟳ Sync sekarang</button></div>
+<p id="syncStatus" class="muted">Backend belum disambungkan.</p>
 <p class="muted">Buat sandaran JSON sebelum sync pertama. Jangan gunakan prototaip ini untuk data sulit.</p></div>
-<div class="panel"><h3 style="margin-top:0">Tentang alert</h3><p class="muted">Notifikasi setempat disemak oleh aplikasi semasa ia terbuka. Notifikasi web bukan alarm sistem dan tidak dijamin berjalan selepas pelayar ditutup. Push sebenar memerlukan pelayan, kunci VAPID dan langganan push.</p></div></section>
+</section>
 </main>
-<div class="bottom"><button class="btn secondary" id="notifyTest">Uji notifikasi</button><button class="btn" id="quickAdd">＋ Aktiviti baharu</button></div>
+<div class="bottom"><button class="btn" id="quickAdd">＋ Aktiviti baharu</button><button class="btn secondary" id="syncBottom">⟳ Sync</button></div>
 <script>
 const $=id=>document.getElementById(id); const STORE='msa_events_v1', PREF='msa_prefs_v1';
-let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), alerted=new Set(JSON.parse(localStorage.getItem('msa_alerted_v4')||'[]')), currentView='today';
-let attentionActive=false;
-function activateAttention(title, body){attentionActive=true;const hero=document.querySelector('.hero');hero?.classList.add('attention');$('alertAttention').innerHTML='🔴 PERINGATAN AKTIF — '+String(title||'SILA SEMAK JADUAL').replace(/[<>]/g,'')+'<br><span style="font-size:12px;font-weight:600">'+String(body||'Semak aktiviti yang perlu dilakukan.').replace(/[<>]/g,'')+'</span><br><button class="ackAlert" id="ackAlert" type="button">SAYA DAH NAMPAK</button>';document.title='🔴 PERINGATAN AKTIF | Mobile Schedule Alert';$('ackAlert').onclick=clearAttention;}
-function clearAttention(){attentionActive=false;document.querySelector('.hero')?.classList.remove('attention');$('alertAttention').innerHTML='';document.title='Mobile Schedule Alert';}
+let events=loadEvents(), prefs=JSON.parse(localStorage.getItem(PREF)||'{}'), currentView='today';
 function loadEvents(){try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}}
 function save(){localStorage.setItem(STORE,JSON.stringify(events));render()}
 function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -106,18 +100,18 @@ function instancesFor(date){
  return arr.sort((a,b)=>String(a.time).slice(0,5).localeCompare(String(b.time).slice(0,5)));
 }
 function isDone(e){return !!e.doneDates?.includes(e.instanceDate||e.date)}
-function render(){const now=new Date(), today=localDate(now), todays=instancesFor(now);$('countToday').textContent=todays.length;$('countPending').textContent=todays.filter(e=>!isDone(e)).length;$('countAlerts').textContent=todays.filter(e=>e.alertOn&&e.remind>0&&!isDone(e)).length;$('todayCountLabel').textContent=`${todays.length} aktiviti`;$('todayLabel').textContent=dayName(now);let next=todays.find(e=>!isDone(e)&&dateTime({...e,date:e.instanceDate})>=now);$('nextLine').textContent=next?`Seterusnya: ${next.title} · ${next.time}`:'Tiada aktiviti akan datang 🎉';$('todayList').innerHTML=renderEvents(todays);let week=[];for(let i=0;i<7;i++){let d=new Date(now);d.setDate(now.getDate()+i);let es=instancesFor(d);if(es.length)week.push({date:d,events:es})}$('weekList').innerHTML=week.length?week.map(g=>`<h3 style="font-size:14px;color:var(--accent);margin:18px 2px 9px">${dayName(g.date)}</h3>${renderEvents(g.events)}`).join(''):'<div class="empty">Tiada aktiviti minggu ini. Tambah jadual pertama anda.</div>';updateNotifStatus()}
-function renderEvents(arr){if(!arr.length)return '<div class="empty">Belum ada aktiviti. Tekan “Aktiviti baharu” untuk tambah jadual.</div>';return arr.map(e=>{const done=isDone(e), id=e.id;return `<article class="event ${done?'done':''}"><div class="time">${esc(normalizeTimeValue(e.time))}<br><span class="muted">${e.duration||60} min</span></div><div><h3>${esc(e.title)}</h3><p>${esc(e.notes||e.category||'')}</p><span class="tag">${esc(e.category||'Peribadi')}${e.repeat==='weekly'?' · Mingguan':''}${e.priority==='Kritikal'?' · ⚠ Kritikal':''}</span>${e.alertOn&&e.remind>0?` <span class="tag">🔔 ${e.remind} min</span>`:''}</div><div class="actions"><button class="mini" data-action="done" data-id="${id}" data-date="${e.instanceDate||e.date}">${done?'↩ Buka':'✓ Selesai'}</button><button class="mini" data-action="edit" data-id="${id}">Edit</button><button class="mini" data-action="delete" data-id="${id}">Padam</button></div></article>`}).join('')}
+function render(){const now=new Date(), today=localDate(now), todays=instancesFor(now);$('countToday').textContent=todays.length;$('countPending').textContent=todays.filter(e=>!isDone(e)).length;$('todayCountLabel').textContent=`${todays.length} aktiviti`;$('todayLabel').textContent=dayName(now);let next=todays.find(e=>!isDone(e)&&dateTime({...e,date:e.instanceDate})>=now);$('nextLine').textContent=next?`Seterusnya: ${next.title} · ${next.time}`:'Tiada aktiviti akan datang 🎉';$('todayList').innerHTML=renderEvents(todays);let week=[];for(let i=0;i<7;i++){let d=new Date(now);d.setDate(now.getDate()+i);let es=instancesFor(d);if(es.length)week.push({date:d,events:es})}$('weekList').innerHTML=week.length?week.map(g=>`<h3 style="font-size:14px;color:var(--accent);margin:18px 2px 9px">${dayName(g.date)}</h3>${renderEvents(g.events)}`).join(''):'<div class="empty">Tiada aktiviti minggu ini. Tambah jadual pertama anda.</div>'}
+function renderEvents(arr){if(!arr.length)return '<div class="empty">Belum ada aktiviti. Tekan “Aktiviti baharu” untuk tambah jadual.</div>';return arr.map(e=>{const done=isDone(e), id=e.id;return `<article class="event ${done?'done':''}"><div class="time">${esc(normalizeTimeValue(e.time))}<br><span class="muted">${e.duration||60} min</span></div><div><h3>${esc(e.title)}</h3><p>${esc(e.notes||e.category||'')}</p><span class="tag">${esc(e.category||'Peribadi')}${e.repeat==='weekly'?' · Mingguan':''}${e.priority==='Kritikal'?' · ⚠ Kritikal':''}</span></div><div class="actions"><button class="mini" data-action="done" data-id="${id}" data-date="${e.instanceDate||e.date}">${done?'↩ Buka':'✓ Selesai'}</button><button class="mini" data-action="edit" data-id="${id}">Edit</button><button class="mini" data-action="delete" data-id="${id}">Padam</button></div></article>`}).join('')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function showView(v){currentView=v;document.querySelectorAll('[id^="view-"]').forEach(el=>el.classList.toggle('hidden',el.id!=='view-'+v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='add'&&!$('eventId').value&& !$('date').value)$('date').value=localDate();if(v==='settings'){$('defaultRemind').value=prefs.defaultRemind??10;$('schoolName').value=prefs.schoolName||'';if($('gasUrl'))$('gasUrl').value=gasUrl();updateNotifStatus()}}
+function showView(v){currentView=v;document.querySelectorAll('[id^="view-"]').forEach(el=>el.classList.toggle('hidden',el.id!=='view-'+v));document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='add'&&!$('eventId').value&& !$('date').value)$('date').value=localDate();if(v==='settings'){$('schoolName').value=prefs.schoolName||'';if($('gasUrl'))$('gasUrl').value=gasUrl()}}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
-function resetForm(){ $('eventForm').reset();$('eventId').value='';$('date').value=localDate();$('duration').value=60;$('remind').value=String(prefs.defaultRemind??10);$('alertOn').checked=true;$('formTitle').textContent='Tambah aktiviti'}
+function resetForm(){ $('eventForm').reset();$('eventId').value='';$('date').value=localDate();$('duration').value=60;$('formTitle').textContent='Tambah aktiviti'}
 $('resetForm').onclick=resetForm;$('quickAdd').onclick=()=>{resetForm();showView('add')};
 $('eventForm').addEventListener('submit',async ev=>{
  ev.preventDefault();
  const id=$('eventId').value||crypto.randomUUID();
  const old=events.find(e=>String(e.id)===String(id));
- const e={id,title:$('title').value.trim(),date:normalizeDateKey($('date').value),time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:Number($('remind').value),priority:$('priority').value,notes:$('notes').value.trim(),alertOn:$('alertOn').checked,doneDates:old?.doneDates||[]};
+ const e={id,title:$('title').value.trim(),date:normalizeDateKey($('date').value),time:$('time').value,duration:Number($('duration').value)||60,category:$('category').value,repeat:$('repeat').value,remind:0,priority:$('priority').value,notes:$('notes').value.trim(),alertOn:false,doneDates:old?.doneDates||[]};
  if(old)events=events.map(x=>String(x.id)===String(id)?e:x);else events.push(e);
  save();resetForm();showView('today');
  if(gasUrl()){
@@ -133,8 +127,7 @@ document.addEventListener('click',async ev=>{
  const a=b.dataset.action;
  if(a==='edit'){
    $('eventId').value=e.id;
-   for(const k of ['title','date','time','duration','category','repeat','remind','priority','notes'])$(k).value=e[k]??'';
-   $('alertOn').checked=!!e.alertOn;
+   for(const k of ['title','date','time','duration','category','repeat','priority','notes'])$(k).value=e[k]??'';
    $('formTitle').textContent='Edit aktiviti';
    showView('add');
    return;
@@ -173,61 +166,14 @@ document.addEventListener('click',async ev=>{
    }
  }
 });
-async function askNotification(){
- if(!('Notification' in window)){alert('Pelayar ini tidak menyokong Web Notification.');return}
- try{
-   const p=await Notification.requestPermission();
-   updateNotifStatus();
-   if(p==='granted'){
-     const opts={body:'Notifikasi berjaya diaktifkan. Kekalkan aplikasi terbuka untuk peringatan berjadual.',icon:'icon.svg',tag:'msa-enabled'};
-     if('serviceWorker' in navigator){
-       try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('Mobile Schedule Alert',opts)}
-       catch(_){new Notification('Mobile Schedule Alert',opts)}
-     }else new Notification('Mobile Schedule Alert',opts);
-   }
- }catch(e){alert('Tidak dapat meminta kebenaran notifikasi. Cuba melalui HTTPS dan pelayar yang disokong.')}
-}
-function updateNotifStatus(){if(!('Notification'in window))$('notifStatus').textContent='Pelayar tidak menyokong notifikasi';else $('notifStatus').textContent='Status: '+Notification.permission}
-$('enableNotifications').onclick=askNotification;
-$('notifyTest').onclick=async()=>{
- const btn=$('notifyTest');
- try{
-   if(!('Notification' in window)){alert('Pelayar ini tidak menyokong notifikasi. Buka pautan menggunakan Chrome.');return}
-   let permission=Notification.permission;
-   if(permission==='default') permission=await Notification.requestPermission();
-   updateNotifStatus();
-   if(permission!=='granted'){alert('Notifikasi belum dibenarkan. Buka tetapan laman web dan pilih Notifications > Allow. Status: '+permission);return}
-   const opts={body:'Ujian berjaya. Notifikasi peranti ini berfungsi ketika aplikasi aktif.',icon:'./icon.svg',tag:'msa-test-'+Date.now()};
-   // Use the browser notification API first so a broken Service Worker cannot leave this button hanging.
-   try { new Notification('Mobile Schedule Alert · Ujian',opts); $('notifStatus').textContent='Status: granted · Ujian dihantar'; }
-   catch(err) {
-     if('serviceWorker' in navigator){
-       const reg=await Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Service Worker belum sedia')),4000))]);
-       await reg.showNotification('Mobile Schedule Alert · Ujian',opts);
-       $('notifStatus').textContent='Status: granted · Ujian dihantar melalui Service Worker';
-     } else throw err;
-   }
- }catch(err){alert('Ujian notifikasi gagal: '+(err && err.message ? err.message : err));$('notifStatus').textContent='Ralat notifikasi: '+(err && err.message ? err.message : err);}
-};
-$('defaultRemind').onchange=()=>{prefs.defaultRemind=Number($('defaultRemind').value);localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};$('schoolName').onchange=()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};
+$('schoolName').onchange=()=>{prefs.schoolName=$('schoolName').value.trim();localStorage.setItem(PREF,JSON.stringify(prefs));$('settingsMsg').textContent='Tetapan disimpan.'};
 $('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({events,prefs,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='msa-backup-'+localDate()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('importFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.events))throw Error('Format tidak sah');if(confirm('Import akan menggantikan jadual sedia ada. Teruskan?')){events=data.events;prefs=data.prefs||{};localStorage.setItem(PREF,JSON.stringify(prefs));save();$('settingsMsg').textContent='Data berjaya diimport.'}}catch(e){alert('Fail JSON tidak sah atau rosak.')}ev.target.value=''};
 $('clearData').onclick=()=>{if(confirm('Padam SEMUA jadual pada peranti ini? Tindakan ini tidak boleh dibatalkan.')){events=[];save();$('settingsMsg').textContent='Semua jadual dipadam.'}};
 
 // V2 Google Apps Script connection using JSONP. Local storage remains the offline cache.
-function normalizeGasUrl(raw){
- const u=String(raw||'').trim();
- // Use the KPM Workspace URL route for this deployment when the short route was saved.
- const m=u.match(/^https:\/\/script\.google\.com\/macros\/s\/([^/]+)\/exec\/?$/);
- if(m)return 'https://script.google.com/a/macros/moe-dl.edu.my/s/'+m[1]+'/exec';
- return u;
-}
-function gasUrl(){
- const raw=(localStorage.getItem('msa_gas_url')||'').trim();
- const normalized=normalizeGasUrl(raw);
- if(raw && normalized!==raw) localStorage.setItem('msa_gas_url',normalized);
- return normalized;
-}
+const DEFAULT_GAS_URL='https://script.google.com/macros/s/AKfycbwdpPBFyz3GPFqw-36UX0PQHR7duGGEiwC-5yztT6ErvruSC5b0pjq6J4ZTxgZM17ERkA/exec';
+function gasUrl(){return (localStorage.getItem('msa_gas_url')||DEFAULT_GAS_URL).trim()}
 function setSyncStatus(msg,ok=false){const el=$('syncStatus');if(el){el.textContent=msg;el.className=ok?'success':'muted'}}
 function jsonp(url,timeoutMs=20000){return new Promise((resolve,reject)=>{const cb='msa_cb_'+Date.now()+'_'+Math.floor(Math.random()*100000);const script=document.createElement('script');let done=false;const timer=setTimeout(()=>finish(new Error('Masa menunggu tamat. Semak URL/deployment Apps Script.')),timeoutMs);function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[cb]}catch{}script.remove();err?reject(err):resolve(data)}window[cb]=data=>finish(null,data);script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Semak URL /exec dan akses deployment.'));script.src=url+(url.includes('?')?'&':'?')+'callback='+encodeURIComponent(cb)+'&_='+Date.now();document.head.appendChild(script)})}
 async function gasCall(action,extra={}){const base=gasUrl();if(!base)throw new Error('Masukkan URL Apps Script dahulu di Tetapan.');const q=new URLSearchParams({action,...extra});return await jsonp(base+(base.includes('?')?'&':'?')+q.toString())}
@@ -244,14 +190,15 @@ async function syncWithGas(){
    const local=Array.isArray(events)?events:[];
    const cloudIds=new Set(cloud.map(e=>String(e.id)));
    const localOnly=local.filter(e=>!cloudIds.has(String(e.id)));
+   for(const e of localOnly){e.remind=0;e.alertOn=false;const saved=await gasCall('upsert',{payload:JSON.stringify(e)});if(!saved||!saved.ok)throw new Error(saved?.error||'Gagal memuat naik rekod tempatan.');}
    const map=new Map();
+   cloud.forEach(e=>map.set(String(e.id),{...e,date:normalizeDateKey(e.date),time:normalizeTimeValue(e.time),remind:0,alertOn:false}));
    localOnly.forEach(e=>map.set(String(e.id),e));
-   cloud.forEach(e=>map.set(String(e.id),{...e,date:normalizeDateKey(e.date),time:normalizeTimeValue(e.time)}));
    events=Array.from(map.values()).sort((a,b)=>(normalizeDateKey(a.date)+String(a.time)).localeCompare(normalizeDateKey(b.date)+String(b.time)));
    localStorage.setItem(STORE,JSON.stringify(events));
    render();
    const detail=cloud.map(e=>`${e.title||'(tanpa tajuk)'} [${normalizeDateKey(e.date)} ${normalizeTimeValue(e.time)}]`).join('; ');
-   setSyncStatus(`Sync berjaya. ${cloud.length} rekod dimuat turun${cloud.length?': '+detail:''}${localOnly.length?`; ${localOnly.length} rekod tempatan dikekalkan`:''}.`,true);
+   setSyncStatus(`Sync berjaya. ${cloud.length} rekod dari Google Sheets${localOnly.length?`; ${localOnly.length} rekod tempatan dimuat naik`:''}.`,true);
  }catch(err){
    setSyncStatus('Sync gagal: '+err.message);
    console.error(err);
@@ -260,7 +207,7 @@ async function syncWithGas(){
  }
 }
 $('saveGasUrl')?.addEventListener('click',()=>{
-  const u = normalizeGasUrl($('gasUrl').value.trim());
+  const u = $('gasUrl').value.trim();
   let valid = false;
   try {
     const parsed = new URL(u);
@@ -276,53 +223,11 @@ $('saveGasUrl')?.addEventListener('click',()=>{
   setSyncStatus('URL berjaya disimpan. Tekan Sync sekarang.', true);
 });
 $('syncNow')?.addEventListener('click',syncWithGas);
-$('checkConnection')?.addEventListener('click',async()=>{
- const el=$('connectionStatus');
- if(el)el.textContent='Menyemak deployment…';
- try{
-   const result=await gasCall('status');
-   if(!result||!result.ok)throw new Error(result?.error||'Respons status tidak sah');
-   const who=result.activeEmail||'Identiti pelawat tidak didedahkan oleh Google';
-   const owner=result.effectiveEmail||'Pemilik deployment tidak dapat dikenal pasti';
-   if(el)el.textContent='Sambungan OK · Akaun aktif: '+who+' · Jalankan sebagai: '+owner+' · Akses: '+(result.access||'tidak diketahui');
- }catch(err){
-   if(el)el.textContent='Semakan gagal: '+err.message+' · URL yang digunakan: '+gasUrl();
- }
-});
+$('syncBottom')?.addEventListener('click',()=>{showView('settings');syncWithGas()});
 
-async function checkAlerts(){
- const now=new Date();
- for(const e of instancesFor(now)){
-   if(!e.alertOn||!Number(e.remind)||isDone(e))continue;
-   const start=dateTime({...e,date:e.instanceDate});
-   const mins=(start-now)/60000;
-   const key=String(e.id)+'|'+e.instanceDate;
-   if(mins>=0&&mins<=Number(e.remind)&&!alerted.has(key)){
-     alerted.add(key);
-     try{localStorage.setItem('msa_alerted_v4',JSON.stringify([...alerted].slice(-500)))}catch(_){}
-     const title='Peringatan: '+e.title;
-     const body=`Bermula ${e.time} · ${e.category}${e.notes?' · '+e.notes:''}`;
-     activateAttention(title,body);
-     try{navigator.vibrate?.([300,120,300,120,600])}catch(_){}
-     try{if('AudioContext' in window){const Ctx=window.AudioContext||window.webkitAudioContext;const ctx=new Ctx();if(ctx.state==='suspended')await ctx.resume();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=880;gain.gain.value=0.12;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.35);osc.onended=()=>ctx.close();}}catch(_){}
-     if('Notification' in window&&Notification.permission==='granted'){
-       const opts={body,icon:'icon.svg',tag:key,renotify:false};
-       let sent=false;
-       if('serviceWorker' in navigator){
-         try{const reg=await navigator.serviceWorker.ready;await reg.showNotification(title,opts);sent=true}catch(_){}
-       }
-       if(!sent){try{new Notification(title,opts)}catch(_){}}
-     }else{
-       try{navigator.vibrate?.([250,100,250])}catch(_){}
-       if(mins<=1)alert(title+'\\n'+body);
-     }
-   }
- }
-}
-function updateClock(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false});if(attentionActive)document.title='🔴 PERINGATAN AKTIF | '+$('clock').textContent}
-function tickAlerts(){checkAlerts().catch(err=>console.error('MSA alert error',err))}
-$('date').value=localDate();render();updateClock();tickAlerts();
-setInterval(updateClock,1000);setInterval(tickAlerts,10000);setInterval(render,30000);
+function updateClock(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('ms-MY',{hour12:false})}
+$('date').value=localDate();render();updateClock();
+setInterval(updateClock,1000);setInterval(render,30000);
 if('serviceWorker'in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(err=>console.error('MSA service worker error',err));
 // Restore cloud data automatically on devices where the Web App URL was saved.
 if(gasUrl())setTimeout(()=>syncWithGas(),800);
