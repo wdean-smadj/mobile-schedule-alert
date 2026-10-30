@@ -10,17 +10,16 @@
   <title>Mobile Schedule</title>
   <style>
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#0b1220;color:#eef4ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
-    .app{height:100%;height:100dvh;display:flex;flex-direction:column}.top{height:54px;flex:0 0 54px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#101b2d;border-bottom:1px solid #263650}.brand{display:flex;align-items:center;gap:9px;font-weight:800}.logo{width:32px;height:32px;border-radius:10px;background:#54d6c7;color:#06202a;display:grid;place-items:center;font-weight:900}.hint{font-size:11px;color:#9fb0ca}iframe{width:100%;height:calc(100% - 54px);border:0;background:#0b1220;flex:1}.offline{display:none;background:#6b2935;color:#fff;padding:7px 12px;text-align:center;font-size:12px}.offline.show{display:block}
+    .app{height:100%;height:100dvh;display:flex;flex-direction:column}iframe{width:100%;height:100%;min-height:0;border:0;background:#0b1220;flex:1}.offline{display:none;background:#6b2935;color:#fff;padding:7px 12px;text-align:center;font-size:12px}.offline.show{display:block}
   </style>
 </head>
 <body>
 <div class="app">
-  <header class="top"><div class="brand"><span class="logo">MS</span><span>Mobile Schedule</span></div><span class="hint" id="net">Online</span></header>
   <div class="offline" id="offline">Tiada sambungan internet. Mobile Schedule memerlukan internet untuk memuatkan data.</div>
   <iframe title="Mobile Schedule" src="https://script.google.com/macros/s/AKfycbxb4gBaYDYaef0siDhPuwD1nL4LEka4-c5_VmTogn_FGhbi5uYmXS7_5TuIb_uKZc2q/exec" allow="clipboard-read; clipboard-write"></iframe>
 </div>
 <script>
-  function net(){const on=navigator.onLine;document.getElementById('net').textContent=on?'Online':'Offline';document.getElementById('offline').classList.toggle('show',!on)}
+  function net(){const on=navigator.onLine;document.getElementById('offline').classList.toggle('show',!on)}
   addEventListener('online',net);addEventListener('offline',net);net();
   if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
 </script>
